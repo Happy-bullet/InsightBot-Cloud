@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PromptVibe — AI Web Engine</title>
+    <style>
+        /* Estética Estritamente Monocromática (Preto e Branco) */
+        :root {
+            --bg-principal: #0a0a0a;
+            --bg-card: #121212;
+            --border-color: #262626;
+            --texto-puro: #ffffff;
+            --texto-mutado: #a3a3a3;
+            --botao-bg: #ffffff;
+            --botao-texto: #000000;
+            --danger: #ff4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-principal);
+            color: var(--texto-puro);
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 50px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 20px;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            letter-spacing: -1px;
+            text-transform: uppercase;
+        }
+
+        header p {
+            color: var(--texto-mutado);
+            margin-top: 10px;
+        }
+
+        .gerador-box {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            padding: 30px;
+            border-radius: 8px;
+            margin-bottom: 40px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+            color: var(--texto-mutado);
+        }
+
+        /* Input direcionando o usuário para as especificações exatas */
+        textarea {
+            width: 100%;
+            height: 120px;
+            background-color: var(--bg-principal);
+            border: 1px solid var(--border-color);
+            color: var(--texto-puro);
+            border-radius: 6px;
+            padding: 15px;
+            font-size: 1rem;
+            resize: none;
+            transition: border-color 0.3s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--texto-puro);
+        }
+
+        .btn-gerar {
+            background-color: var(--botao-bg);
+            color: var(--botao-texto);
+            border: none;
+            padding: 14px 28px;
+            font-size: 1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+            transition: filter 0.3s;
+        }
+
+        .btn-gerar:hover {
+            filter: invert(1);
+        }
+
+        /* Grid da Galeria de Criações (CRUD - Read) */
+        .galeria-titulo {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: -0.5px;
+        }
+
+        .grid-sites {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 100px));
+            gap: 20px;
+        }
+
+        .card-site {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .card-site p {
+            font-size: 0.95rem;
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+
+        .card-meta {
+            font-size: 0.75rem;
+            color: var(--texto-mutado);
+            margin-bottom: 15px;
+        }
+
+        .card-acoes {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-acao {
+            flex: 1;
+            padding: 8px;
+            font-size: 0.8rem;
+            text-align: center;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background: transparent;
+            color: var(--texto-puro);
+            text-decoration: none;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+
+        .btn-acao:hover {
+            background-color: var(--texto-puro);
+            color: var(--bg-principal);
+        }
+
+        .btn-deletar {
+            color: var(--danger);
+            border-color: var(--danger);
+        }
+
+        .btn-deletar:hover {
+            background-color: var(--danger);
+            color: var(--texto-puro);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>PromptVibe</h1>
+            <p>AI Frontend Generator — Engine de Implantação Monocromática</p>
+        </header>
+
+        <main>
+            <section class="gerador-box">
+                <div class="form-group">
+                    <label for="prompt">Especificações do Web Engine</label>
+                    <textarea id="prompt" placeholder="Ex: Nicho: Barbearia Premium | Cores Principais: Preto fosco e Dourado | Tipo de Animação: Fade-in suave ao rolar a página, menu lateral retrátil e efeito hover nos botões de agendamento."></textarea>
+                </div>
+                <button class="btn-gerar" id="btnGerar" onclick="gerarInterface()">Gerar Código & Publicar</button>
+            </section>
+
+            <section>
+                <h2 class="galeria-titulo">Interfaces Geradas na Nuvem</h2>
+                <div class="grid-sites" id="gridSites">
+                    </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        const API_URL = window.location.origin; // Assume que o frontend roda na mesma origem da EC2
+
+        // Função para carregar a galeria (READ)
+        async function carregarGaleria() {
+            try {
+                const res = await fetch(`${API_URL}/api/sites`);
+                const sites = await res.json();
+                const container = document.getElementById('gridSites');
+                container.innerHTML = '';
+
+                sites.forEach(site => {
+                    container.innerHTML += `
+                        <div class="card-site">
+                            <div>
+                                <div class="card-meta">ID: #${site.id} | ${site.data}</div>
+                                <p>${site.prompt}</p>
+                            </div>
+                            <div class="card-acoes">
+                                <a href="${API_URL}/render/${site.id}" target="_blank" class="btn-acao">Visualizar</a>
+                                <button onclick="deletarSite(${site.id})" class="btn-acao btn-deletar">Excluir</button>
+                            </div>
+                        </div>
+                    `;
+                });
+            } catch (err) {
+                console.error("Erro ao carregar registros do RDS:", err);
+            }
+        }
+
+        // Função para enviar o prompt (CREATE)
+        async function gerarInterface() {
+            const promptInput = document.getElementById('prompt');
+            const btn = document.getElementById('btnGerar');
+            
+            if (!promptInput.value.trim()) {
+                alert("Por favor, insira as especificações do site.");
+                return;
+            }
+
+            btn.innerText = "Processando LLM & Salvando no RDS...";
+            btn.disabled = true;
+
+            try {
+                const res = await fetch(`${API_URL}/api/gerar`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: promptInput.value })
+                });
+
+                if (res.ok) {
+                    promptInput.value = '';
+                    carregarGaleria();
+                } else {
+                    alert("Erro ao processar requisição na Nuvem.");
+                }
+            } catch (err) {
+                alert("Falha de comunicação com o servidor EC2.");
+            } finally {
+                btn.innerText = "Gerar Código & Publicar";
+                btn.disabled = false;
+            }
+        }
+
+        // Função para deletar (DELETE)
+        async function deletarSite(id) {
+            if (!confirm("Confirmar exclusão definitiva do registro no banco MySQL privado?")) return;
+
+            try {
+                const res = await fetch(`${API_URL}/api/sites/${id}`, { method: 'DELETE' });
+                if (res.ok) carregarGaleria();
+            } catch (err) {
+                alert("Erro ao remover registro.");
+            }
+        }
+
+        // Boot inicial
+        window.onload = carregarGaleria;
+    </script>
+</body>
+</html>
