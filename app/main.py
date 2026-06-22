@@ -4,7 +4,7 @@ import json
 from flask import Flask, request, jsonify, render_template_string
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
-import google.generativeai as genai  # Nova biblioteca para usar sua chave do Gemini
+from google import genai  # Novo SDK oficial do Google
 
 app = Flask(__name__)
 CORS(app)
@@ -20,22 +20,27 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
-# Configuração da API do Gemini
-GEMINI_KEY = os.getenv("GEMINI_API_KEY", "")
-genai.configure(api_key=GEMINI_KEY)
-
-# Configurando o modelo (usando o flash, que é rápido e ideal para o escopo)
-model = genai.GenerativeModel('gemini-1.5-flash', 
-                             generation_config={"response_mime_type": "application/json"})
+# Inicializando o cliente moderno do Gemini
+# Ele coleta automaticamente a variável de ambiente GEMINI_API_KEY
+client = genai.Client()
 
 class SiteGerado(db.Model):
     __tablename__ = 'sites_gerados'
     id = db.Column(db.Integer, primary_key=True)
     prompt_usuario = db.Column(db.Text, nullable=False)
-    codigo_html = db.Column(db.LongText, nullable=False)
-    estilo_css = db.Column(db.LongText, nullable=False)
-    script_js = db.Column(db.LongText, nullable=False)
+    codigo_html = db.Column(db.Text, nullable=False)
+    estilo_css = db.Column(db.Text, nullable=False)
+    script_js = db.Column(db.Text, nullable=False)
     data_criacao = db.Column(db.DateTime, default=db.func.current_timestamp())
+
+@app.route('/')
+def home():
+    try:
+        with open('templates/index.html', 'r', encoding='utf-8') as f:
+            conteudo = f.read()
+        return render_template_string(conteudo)
+    except Exception as e:
+        return f"Erro ao carregar o arquivo templates/index.html: {str(e)}", 500
 
 @app.route('/health', methods=['GET'])
 def health_check():
@@ -56,8 +61,22 @@ def gerar_site():
             "'html', 'css' e 'js'. Não adicione blocos de código markdown como ```json."
         )
 
-        response = model.generate_content(f"{instrucoes} Crie o código para: {prompt}")
-        resultado_ia = json.loads(response.text.strip())
+        # Chamada corrigida usando estritamente o padrão do novo SDK (client.models.generate_content)
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=f"{instrucoes} Crie o código para: {prompt}"
+        )
+        
+        texto_puro = response.text.strip()
+        
+        # Limpeza preventiva contra blocos de Markdown residuais
+        if texto_puro.startswith("```json"):
+            texto_puro = texto_puro.split("```json")[1]
+        if texto_puro.endswith("```"):
+            texto_puro = texto_puro.rsplit("```", 1)[0]
+        texto_puro = texto_puro.strip()
+
+        resultado_ia = json.loads(texto_puro)
 
         novo_site = SiteGerado(
             prompt_usuario=prompt,
@@ -77,12 +96,19 @@ def gerar_site():
         }), 201
 
     except Exception as e:
+        print("--- ERRO NA GERACAO ---")
+        import traceback
+        traceback.print_exc()
+        print("-----------------------")
         return jsonify({"erro": f"Falha na geração: {str(e)}"}), 500
 
 @app.route('/api/sites', methods=['GET'])
 def listar_sites():
-    sites = SiteGerado.query.order_by(SiteGerado.data_criacao.desc()).all()
-    return jsonify([{"id": s.id, "prompt": s.prompt_usuario, "data": s.data_criacao.strftime('%d/%m/%Y %H:%M')} for s in sites]), 200
+    try:
+        sites = SiteGerado.query.order_by(SiteGerado.data_criacao.desc()).all()
+        return jsonify([{"id": s.id, "prompt": s.prompt_usuario, "data": s.data_criacao.strftime('%d/%m/%Y %H:%M')} for s in sites]), 200
+    except Exception as e:
+        return jsonify({"erro": str(e)}), 500
 
 @app.route('/render/<int:site_id>', methods=['GET'])
 def renderizar_site(site_id):
